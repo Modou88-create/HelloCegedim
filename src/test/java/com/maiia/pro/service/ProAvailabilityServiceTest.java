@@ -7,6 +7,7 @@ import com.maiia.pro.repository.AppointmentRepository;
 import com.maiia.pro.repository.AvailabilityRepository;
 import com.maiia.pro.repository.PractitionerRepository;
 import com.maiia.pro.repository.TimeSlotRepository;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -39,10 +40,12 @@ class ProAvailabilityServiceTest {
     @Autowired
     private TimeSlotRepository timeSlotRepository;
 
+
     @Test
-    void generateAvailabilities() {
+    @DisplayName("Test we can only have 4 meetings for 1 hour practitioner timeslot")
+    void generateAvailabilitiesForTimeSlowInTheFuture() {
         Practitioner practitioner = practitionerRepository.save(entityFactory.createPractitioner());
-        LocalDateTime startDate = LocalDateTime.of(2020, Month.FEBRUARY, 5, 11, 0, 0);
+        LocalDateTime startDate = LocalDateTime.of(2025, Month.FEBRUARY, 5, 11, 0, 0);
         timeSlotRepository.save(entityFactory.createTimeSlot(practitioner.getId(), startDate, startDate.plusHours(1)));
 
         List<Availability> availabilities = proAvailabilityService.generateAvailabilities(practitioner.getId());
@@ -59,9 +62,40 @@ class ProAvailabilityServiceTest {
     }
 
     @Test
+    @DisplayName("Test we can't have a meeting for timeslot in the pas")
+    void generateAvailabilitiesForTimeSlowFromThePast() {
+        Practitioner practitioner = practitionerRepository.save(entityFactory.createPractitioner());
+        LocalDateTime startDate = LocalDateTime.of(2022, Month.FEBRUARY, 5, 11, 0, 0);
+        timeSlotRepository.save(entityFactory.createTimeSlot(practitioner.getId(), startDate, startDate.plusHours(1)));
+
+        List<Availability> availabilities = proAvailabilityService.generateAvailabilities(practitioner.getId());
+
+        assertEquals(0, availabilities.size());
+    }
+
+    @Test
+    @DisplayName("Test we can only have 3 meetings for 1 hour practitioner timeslow")
+    void generateAvailabilitiesAfterBookingAnAppointment() {
+        Practitioner practitioner = practitionerRepository.save(entityFactory.createPractitioner());
+        LocalDateTime startDate = LocalDateTime.of(2025, Month.FEBRUARY, 5, 11, 0, 0);
+        timeSlotRepository.save(entityFactory.createTimeSlot(practitioner.getId(), startDate, startDate.plusHours(1)));
+
+        List<Availability> availabilities = proAvailabilityService.generateAvailabilities(practitioner.getId());
+
+        assertEquals(4, availabilities.size());
+
+        appointmentRepository.save(entityFactory.createAppointment(practitioner.getId(),
+                patient_id,
+                startDate,
+                startDate.plusMinutes(15)));
+        List<Availability> availabilitiesAfterCreatedOneAppointment = proAvailabilityService.findByPractitionerId(practitioner.getId());
+        assertEquals(3, availabilitiesAfterCreatedOneAppointment.size());
+    }
+
+    @Test
     void checkAvailabilitiesAreNotDuplicated() {
         Practitioner practitioner = practitionerRepository.save(entityFactory.createPractitioner());
-        LocalDateTime startDate = LocalDateTime.of(2020, Month.FEBRUARY, 5, 11, 0, 0);
+        LocalDateTime startDate = LocalDateTime.of(2025, Month.JANUARY, 5, 11, 0, 0);
         timeSlotRepository.save(entityFactory.createTimeSlot(practitioner.getId(), startDate, startDate.plusHours(1)));
 
         availabilityRepository.save(Availability.builder().practitionerId(practitioner.getId()).startDate(startDate).endDate(startDate.plusMinutes(15)).build());
