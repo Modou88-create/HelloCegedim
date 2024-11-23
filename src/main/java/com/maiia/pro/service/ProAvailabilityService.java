@@ -50,11 +50,11 @@ public class ProAvailabilityService {
                 .collect(Collectors.toList());
 
 
-        return generateAvaiblities(practitionerId, inCommingTimeSlots, inCommingAppointments);
+        return generateAvailabilities(practitionerId, inCommingTimeSlots, inCommingAppointments);
     }
 
 
-    public List<Availability> generateAvaiblities(Integer practionnerId, List<TimeSlot> timeSlots, List<Appointment> appointmentList) {
+    public List<Availability> generateAvailabilities(Integer practitionerId, List<TimeSlot> timeSlots, List<Appointment> appointmentList) {
 
         List<Availability> availabilityList = new ArrayList<>(Collections.emptyList());
         int meetingDuration = 15;
@@ -69,7 +69,7 @@ public class ProAvailabilityService {
                 int slotTime = timesSlot.getEndDate().getHour() - timesSlot.getStartDate().getHour();
 
                 for (int m = 0; m < slotTime * 4; m++) {
-                    availabilityList.add(new Availability(null, practionnerId, startDateTimeSlotWithEmptyAppointment, startDateTimeSlotWithEmptyAppointment.plusMinutes(meetingDuration)));
+                    availabilityList.add(new Availability(null, practitionerId, startDateTimeSlotWithEmptyAppointment, startDateTimeSlotWithEmptyAppointment.plusMinutes(meetingDuration)));
                     startDateTimeSlotWithEmptyAppointment = startDateTimeSlotWithEmptyAppointment.plusMinutes(15);
                 }
 
@@ -84,7 +84,7 @@ public class ProAvailabilityService {
                     for (Appointment appointment : appointmentList) {
 
                         if (!timeSlot.getStartDate().equals(appointment.getStartDate())) {
-                            availabilityList.add(new Availability(null, practionnerId, startDateTimeSlotWithAppointment, startDateTimeSlotWithAppointment.plusMinutes(15)));
+                            availabilityList.add(new Availability(null, practitionerId, startDateTimeSlotWithAppointment, startDateTimeSlotWithAppointment.plusMinutes(15)));
                             startDateTimeSlotWithAppointment = startDateTimeSlotWithAppointment.plusMinutes(15);
                         }
                     }

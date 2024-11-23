@@ -43,9 +43,9 @@ public class CommandLineStartupRunner implements CommandLineRunner {
             //create practitioner
             Practitioner practitioner = practitionerRepository.save(Practitioner.builder().firstName("practitioner" + i).lastName("maiia").build());
             //create timeSlots for practitioner
-            //timeslot from 2021/02/08 at 8H to 2021/02/08 at 12H
-            TimeSlot timeSlot1 = TimeSlot.builder().startDate(LocalDateTime.of(2021, 2, 8, 8, 0))
-                    .endDate(LocalDateTime.of(2021, 2, 8, 12, 0)).practitionerId(practitioner.getId()).build();
+            //timeslot from 2025/02/08 at 8H to 2026/02/08 at 12H
+            TimeSlot timeSlot1 = TimeSlot.builder().startDate(LocalDateTime.of(2025, 2, 8, 8, 0))
+                    .endDate(LocalDateTime.of(2026, 2, 8, 12, 0)).practitionerId(practitioner.getId()).build();
             //timeslot from 2021/02/08 at 14H to 2021/02/08 at 17H
             TimeSlot timeSlot2 = TimeSlot.builder().startDate(LocalDateTime.of(2021, 2, 8, 14, 0))
                     .endDate(LocalDateTime.of(2021, 2, 8, 17, 0)).practitionerId(practitioner.getId()).build();
