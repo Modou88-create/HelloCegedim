@@ -36,7 +36,7 @@ public class ProAvailabilityService {
         // TODO : implement this
         List<TimeSlot> listOfTimeSlotPractitionerById = timeSlotRepository.findByPractitionerId(practitionerId);
 
-        List<TimeSlot> inCommingTimeSlots = listOfTimeSlotPractitionerById
+        List<TimeSlot> inComingTimeSlots = listOfTimeSlotPractitionerById
                 .stream()
                 .filter(timeSlot -> timeSlot.getStartDate().isAfter(LocalDateTime.now()))
                 .sorted((Comparator.comparing(TimeSlot::getStartDate)))
@@ -44,23 +44,59 @@ public class ProAvailabilityService {
 
         List<Appointment> appointmentList = appointmentRepository.findByPractitionerId(practitionerId);
 
-        List<Appointment> inCommingAppointments = appointmentList.stream()
+        List<Appointment> inComingAppointments = appointmentList
+                .stream()
                 .filter(appointment -> appointment.getStartDate().isAfter(LocalDateTime.now()))
-                .sorted((o1, o2) -> o2.getStartDate().compareTo(o1.getStartDate()))
+                .sorted(Comparator.comparing(Appointment::getStartDate).reversed())
                 .collect(Collectors.toList());
 
+        List<LocalDateTime> appointmentDates = inComingAppointments.stream().map(Appointment::getStartDate).collect(Collectors.toList());
 
-        return generateAvailabilities(practitionerId, inCommingTimeSlots, inCommingAppointments);
+        return generateAvailabilities(practitionerId, inComingTimeSlots, inComingAppointments, appointmentDates);
     }
 
 
-    public List<Availability> generateAvailabilities(Integer practitionerId, List<TimeSlot> timeSlots, List<Appointment> appointmentList) {
+    public List<Availability> generateAvailabilities(Integer practitionerId, List<TimeSlot> timeSlots, List<Appointment> appointmentList, List<LocalDateTime> appointmentsDates) {
 
         List<Availability> availabilityList = new ArrayList<>(Collections.emptyList());
         int meetingDuration = 15;
 
-        if (appointmentList.isEmpty()) {
+        if (!appointmentList.isEmpty()) {
 
+            for (TimeSlot timeSlot : timeSlots) {
+                int timeSlotDiff = timeSlot.getEndDate().getHour() - timeSlot.getStartDate().getHour();
+                LocalDateTime startDateTimeSlotWithAppointment = timeSlot.getStartDate();
+                for (int m = 0; m < timeSlotDiff * 4; m++) {
+                    for (Appointment appointment : appointmentList) {
+
+                        if (startDateTimeSlotWithAppointment.isBefore(appointment.getStartDate())) {
+
+                            if (!startDateTimeSlotWithAppointment.equals(appointment.getStartDate())) {
+                                List<LocalDateTime> collected = appointmentsDates.stream().filter(localDateTime -> localDateTime.equals(appointment.getStartDate())).collect(Collectors.toList());
+                                if (!collected.isEmpty() && !appointment.getStartDate().equals(startDateTimeSlotWithAppointment.plusMinutes(meetingDuration))) {
+                                    Availability.AvailabilityBuilder availability = Availability.builder().practitionerId(practitionerId).startDate(appointment.getEndDate()).endDate(appointment.getEndDate().plusMinutes(15));
+                                    availabilityList.add(availability.build());
+                                    startDateTimeSlotWithAppointment = appointment.getStartDate().plusMinutes(15);
+                                }
+
+                                List<LocalDateTime> firstDatePossible = appointmentsDates.stream().filter(localDateTime -> !localDateTime.equals(timeSlot.getStartDate())).collect(Collectors.toList());
+                                if (firstDatePossible.isEmpty()) {
+                                    Availability.AvailabilityBuilder availability = Availability.builder().practitionerId(practitionerId).startDate(timeSlot.getStartDate()).endDate(timeSlot.getEndDate().plusMinutes(15));
+                                    availabilityList.add(availability.build());
+                                }
+
+
+                            }
+
+
+                        }
+
+
+                    }
+                }
+            }
+
+        } else {
             for (TimeSlot timesSlot : timeSlots) {
 
                 LocalDateTime startDateTimeSlotWithEmptyAppointment = timesSlot.getStartDate();
@@ -69,30 +105,15 @@ public class ProAvailabilityService {
                 int slotTime = timesSlot.getEndDate().getHour() - timesSlot.getStartDate().getHour();
 
                 for (int m = 0; m < slotTime * 4; m++) {
-                    availabilityList.add(new Availability(null, practitionerId, startDateTimeSlotWithEmptyAppointment, startDateTimeSlotWithEmptyAppointment.plusMinutes(meetingDuration)));
+                    Availability.AvailabilityBuilder availability = Availability.builder().practitionerId(practitionerId).startDate(startDateTimeSlotWithEmptyAppointment).endDate(startDateTimeSlotWithEmptyAppointment.plusMinutes(15));
+                    availabilityList.add(availability.build());
                     startDateTimeSlotWithEmptyAppointment = startDateTimeSlotWithEmptyAppointment.plusMinutes(15);
                 }
 
             }
-        } else {
-
-            for (TimeSlot timeSlot : timeSlots) {
-                int timeSlotDiff = timeSlot.getEndDate().getHour() - timeSlot.getStartDate().getHour();
-                LocalDateTime startDateTimeSlotWithAppointment = timeSlot.getStartDate();
-                for (int d = 0; d < timeSlotDiff * 4; d++) {
-
-                    for (Appointment appointment : appointmentList) {
-
-                        if (!timeSlot.getStartDate().equals(appointment.getStartDate())) {
-                            availabilityList.add(new Availability(null, practitionerId, startDateTimeSlotWithAppointment, startDateTimeSlotWithAppointment.plusMinutes(15)));
-                            startDateTimeSlotWithAppointment = startDateTimeSlotWithAppointment.plusMinutes(15);
-                        }
-                    }
-
-                }
-            }
-
         }
+
+
         return availabilityList;
 
 
